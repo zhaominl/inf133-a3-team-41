@@ -41,6 +41,25 @@ function readTokenAndClientSecretFiles(callback) {
 }
 
 function refresh(callback) {
+	var headers = {
+		'Content-Type':'application/x-www-form-urlencoded',
+		'Authorization': 'Basic ' + Buffer.from(my_client_id + ':' + my_client_secret).toString('base64')
+	};
+
+	const params = new URLSearchParams();
+	params.append('grant_type', 'refresh_token');
+	params.append('refresh_token', refresh_token);
+
+	fetch('https://accounts.spotify.com/api/token',{
+		method: 'POST', 
+  		body: params,
+  		headers : headers
+	}).then(resp => resp.json())
+	.then(function(res){
+		console.log(res);
+		access_token = res.access_token;
+		writeTokenFile(callback);
+	});
 	//TODO: use fetch() to use the refresh token to get a new access token.
 	//body and headers arguments will be similar the /callback endpoint.
 	//When the fetch() promise completes, parse the response.
@@ -59,8 +78,25 @@ function makeAPIRequest(spotify_endpoint, res) {
 	fetch(spotify_endpoint, {
 		method : 'GET',
 		headers : headers
-	}).then(response => response.json())
+	}).then(response => {
+		if (response.status === 401) {
+			refresh(function(){
+				console.log("refresh success");
+			});
+			fetch(spotify_endpoint, {
+				method : 'GET',
+				headers : headers
+			}).then(function(resp){
+				response = resp;
+				return response.json();
+			});
+		  }
+		else{
+			return response.json();
+		  }
+	})
 	.then(function(resp){
+		//console.log(resp+"here");
 		res.json(resp);
 		}
 	);
@@ -147,6 +183,11 @@ router.get('/', function(req, res, next) {
 router.get('/me', function(req, res, next) {
 	makeAPIRequest(spotify_base_uri + '/me', res);
 });
+
+router.get('/re', function(req, res, next) {
+	refresh(function(){console.log('success refresh');});
+});
+
 
 /*This function does not need to be edited.*/
 router.get('/search/:category/:resource', function(req, res, next) {
