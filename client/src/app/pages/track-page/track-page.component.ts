@@ -18,11 +18,21 @@ export class TrackPageComponent implements OnInit {
   featureTypes = TrackFeatures.FeatureTypes;
 
   constructor(private route: ActivatedRoute,
-    private service: SpotifyService) { }
+    private spotifyService: SpotifyService) { }
 
   ngOnInit() {
   	this.trackId = this.route.snapshot.paramMap.get('id');
-  	//TODO: Inject the spotifyService and use it to get the track data and it's audio features
+    //TODO: Inject the spotifyService and use it to get the track data and it's audio features
+    this.spotifyService.getTrack(this.trackId).then(
+      (res)=>{
+        this.track = res;
+      }
+    );
+    this.spotifyService.getAudioFeaturesForTrack(this.trackId).then(
+      (res)=>{
+        this.audioFeatures = res;
+      }
+    );
   }
 
 }
